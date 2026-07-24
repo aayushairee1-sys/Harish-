@@ -61,7 +61,7 @@
     
     .hidden { display: none; }
     
-    /* Customer Card */
+    /* Customer Ledger Cards */
     .customer-item {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -96,30 +96,12 @@
 
 <div class="container">
 
-  <!-- AUTH SECTION (LOGIN / SIGNUP) -->
-  <div id="authSection" class="card">
-    <h2>🔒 Business Owner Login</h2>
-    <div class="field">
-      <label>Email Address</label>
-      <input type="email" id="authEmail" placeholder="yourname@gmail.com">
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="authPassword" placeholder="••••••••">
-    </div>
-    <div class="btn-group">
-      <button class="btn btn-primary" onclick="login()">Log In</button>
-      <button class="btn btn-success" onclick="signUp()">Sign Up</button>
-    </div>
-  </div>
-
   <!-- DASHBOARD SECTION -->
-  <div id="dashboardSection" class="hidden">
+  <div id="dashboardSection">
     
-    <!-- User Bar -->
+    <!-- Header Bar -->
     <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
-      <span id="userEmailDisplay" style="font-size: 14px; font-weight: bold;"></span>
-      <button class="btn btn-danger" style="width: auto; padding: 6px 12px;" onclick="logout()">Logout</button>
+      <span style="font-size: 16px; font-weight: bold;">📖 Digital Khata & AI Assistant</span>
     </div>
 
     <!-- AI BILLING ASSISTANT -->
@@ -179,46 +161,17 @@
 
 <script>
   // CONFIGURATION
-  const SUPABASE_URL = 'https://ddmuzrmlpanlqsrpkeyc.supabase.co';
-  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // Paste your anon key here
-  const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY';       // Paste your Gemini API key here
+   const SUPABASE_URL = 'https://ddmuzrmlpanlqsrpkeyc.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_QE6adSsiKPskR7UEMeHTDw...'; // Your pasted key inside single quotes
+  const GEMINI_API_KEY = 'AIzaSy...your_actual_key_here';
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Automatically load ledger when page opens
+  window.onload = function() {
+    loadLedger();
+  };
 
-  // Initialize Auth State Listener
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (session) {
-      document.getElementById('authSection').classList.add('hidden');
-      document.getElementById('dashboardSection').classList.remove('hidden');
-      document.getElementById('userEmailDisplay').innerText = session.user.email;
-      loadLedger();
-    } else {
-      document.getElementById('authSection').classList.remove('hidden');
-      document.getElementById('dashboardSection').classList.add('hidden');
-    }
-  });
-
-  // 1. AUTH FUNCTIONS
-  async function signUp() {
-    const email = document.getElementById('authEmail').value;
-    const password = document.getElementById('authPassword').value;
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) alert("Signup Error: " + error.message);
-    else alert("Account created! You can now log in.");
-  }
-
-  async function login() {
-    const email = document.getElementById('authEmail').value;
-    const password = document.getElementById('authPassword').value;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) alert("Login Failed: " + error.message);
-  }
-
-  async function logout() {
-    await supabase.auth.signOut();
-  }
-
-  // 2. MANUAL BILL ENTRY
+  // 1. MANUAL BILL ENTRY
   async function addBill(type, prefilledData = null) {
     const category = prefilledData ? prefilledData.category : document.getElementById('category').value;
     const customer_name = prefilledData ? prefilledData.customer_name : document.getElementById('custName').value.trim();
@@ -252,7 +205,7 @@
     }
   }
 
-  // 3. NEPALI AI AUTO-BILLING PARSER
+  // 2. NEPALI AI AUTO-BILLING PARSER
   async function processAIBill() {
     const text = document.getElementById('aiInput').value.trim();
     if (!text) {
@@ -291,23 +244,23 @@
         document.getElementById('aiInput').value = '';
       }
     } catch (err) {
-      alert("AI Processing Error. Please try again.");
+      alert("AI Processing Error. Please check your Gemini API key.");
       console.error(err);
     }
   }
 
-  // 4. LOAD & RENDER LEDGER
+  // 3. LOAD & RENDER LEDGER
   async function loadLedger() {
     const { data: bills, error } = await supabase.from('bills').select('*');
     const container = document.getElementById('ledgerList');
     
     if (error) {
-      container.innerHTML = "Error loading ledger.";
+      container.innerHTML = "<p style='color:red;'>Error loading ledger. Make sure your SUPABASE_ANON_KEY is pasted correctly.</p>";
       return;
     }
 
     if (!bills || bills.length === 0) {
-      container.innerHTML = "<p style='color:#64748b;'>No entries recorded yet.</p>";
+      container.innerHTML = "<p style='color:#64748b;'>No entries recorded yet. Add your first bill above!</p>";
       return;
     }
 
@@ -334,7 +287,6 @@
     container.innerHTML = '';
     for (let name in customers) {
       const cust = customers[name];
-      if (cust.balance === 0) continue;
 
       let breakdownBadges = Object.keys(cust.breakdown)
         .map(cat => `<span class="badge ${cat.includes('Hardware') ? 'badge-hw' : 'badge-tr'}">${cat}: Rs. ${cust.breakdown[cat]}</span>`)
@@ -349,7 +301,9 @@
         <div>
           <strong>${name}</strong><br>
           <div style="margin: 4px 0;">${breakdownBadges}</div>
-          <small style="color:#d97706; font-weight:bold;">Total Due: Rs. ${cust.balance}</small>
+          <small style="color:${cust.balance > 0 ? '#d97706' : '#16a34a'}; font-weight:bold;">
+            ${cust.balance > 0 ? 'Total Due: Rs. ' + cust.balance : 'Cleared / Credit: Rs. ' + Math.abs(cust.balance)}
+          </small>
         </div>
         <div>
           ${cust.phone ? `<a href="${waLink}" target="_blank" class="wa-link">WhatsApp</a>` : ''}
