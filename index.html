@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Digital Khata & Nepali AI Assistant</title>
+  <title>Smart Khata & Nepali AI Assistant</title>
   <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -11,6 +11,7 @@
       --primary: #2563eb;
       --danger: #dc2626;
       --success: #16a34a;
+      --ai-color: #7c3aed;
       --bg: #f1f5f9;
       --card-bg: #ffffff;
     }
@@ -22,7 +23,7 @@
       color: #1e293b;
     }
     .container {
-      max-width: 550px;
+      max-width: 600px;
       margin: 0 auto;
     }
     .card {
@@ -56,12 +57,13 @@
     .btn-primary { background: var(--primary); }
     .btn-danger { background: var(--danger); }
     .btn-success { background: var(--success); }
-    .btn-ai { background: #7c3aed; }
+    .btn-ai { background: var(--ai-color); }
+    .btn-mic { background: #ea580c; }
     .btn-group { display: flex; gap: 8px; }
     
     .hidden { display: none; }
     
-    /* Customer Ledger Cards */
+    /* Customer Ledger Styling */
     .customer-item {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -74,10 +76,12 @@
     }
     .badge {
       font-size: 11px;
-      padding: 2px 6px;
+      padding: 3px 7px;
       border-radius: 4px;
       font-weight: bold;
       margin-right: 4px;
+      display: inline-block;
+      margin-bottom: 4px;
     }
     .badge-hw { background: #dbeafe; color: #1e40af; }
     .badge-tr { background: #fef3c7; color: #92400e; }
@@ -96,53 +100,76 @@
 
 <div class="container">
 
-  <!-- DASHBOARD SECTION -->
   <div id="dashboardSection">
     
-    <!-- Header Bar -->
+    <!-- Header -->
     <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
-      <span style="font-size: 16px; font-weight: bold;">📖 Digital Khata & AI Assistant</span>
+      <span style="font-size: 16px; font-weight: bold;">🚜 Smart Khata & Nepali Voice AI</span>
     </div>
 
-    <!-- AI BILLING ASSISTANT -->
-    <div class="card" style="border: 2px solid #7c3aed;">
-      <h3>🤖 Nepali AI Auto-Billing</h3>
+    <!-- VOICE & AI ASSISTANT CARD -->
+    <div class="card" style="border: 2px solid var(--ai-color);">
+      <h3>🎙️ Voice & AI Assistant</h3>
       <p style="font-size: 13px; color: #64748b; margin-top:-8px;">
-        Type or speak in Nepali (e.g., <i>"रामबहादुरको २ घण्टा रोटाभेटर काम रु ३०००"</i>)
+        Speak or type in Nepali (e.g., <i>"रामबहादुरको रोटाभेटर २ घण्टा काम रु २५००"</i> or <i>"हरीको बालुवा र ढुङ्गा ढुवानी ५ ट्रिप रु ६०००"</i>)
       </p>
+      
       <div class="field">
-        <textarea id="aiInput" rows="2" placeholder="उदाहरण: हरी शर्माले हार्डवेयरबाट रु ५००० को सामान लगे"></textarea>
+        <textarea id="aiInput" rows="2" placeholder="बोल्नुहोस् वा टाइप गर्नुहोस्..."></textarea>
       </div>
-      <button class="btn btn-ai" onclick="processAIBill()">✨ Process with AI</button>
+      
+      <div class="btn-group">
+        <button class="btn btn-mic" onclick="startVoiceInput()">🎙️ Speak (बोल्नुहोस्)</button>
+        <button class="btn btn-ai" onclick="processAIBill()">✨ Process Entry</button>
+      </div>
     </div>
 
     <!-- MANUAL ENTRY FORM -->
     <div class="card">
       <h3>📝 Manual Entry</h3>
+      
       <div class="field">
-        <label>Category</label>
+        <label>Service Category</label>
         <select id="category">
-          <option value="Hardware">🛠️ Hardware Shop</option>
-          <option value="Tractor 1">🚜 Tractor #1</option>
-          <option value="Tractor 2">🚜 Tractor #2</option>
+          <option value="Hardware">🛠️ Hardware Items</option>
+          <option value="Tractor - Fieldwork">🚜 Tractor Fieldwork (Rotavator / Harrow / Leveler)</option>
+          <option value="Tractor - Transport">🚚 Transport (Stone / Sand / Gravel)</option>
         </select>
       </div>
+
+      <div class="field">
+        <label>Equipment / Material Type</label>
+        <select id="equipmentType">
+          <option value="Rotavator">Rotavator (रोटाभेटर)</option>
+          <option value="Harrow">Harrow (ह्यारो)</option>
+          <option value="Cultivator">Cultivator (कल्टिभेटर)</option>
+          <option value="Stone Transport">Stone Transport (ढुङ्गा)</option>
+          <option value="Sand Transport">Sand Transport (बालुवा)</option>
+          <option value="Gravel Transport">Gravel Transport (गिट्टी)</option>
+          <option value="General Hardware">Hardware Goods</option>
+        </select>
+      </div>
+
       <div class="field">
         <label>Customer Name</label>
-        <input type="text" id="custName" placeholder="Ram Bahadur">
+        <input type="text" id="custName" placeholder="e.g. Ram Bahadur">
       </div>
+
       <div class="field">
         <label>Mobile Number (for WhatsApp)</label>
         <input type="tel" id="custPhone" placeholder="9800000000">
       </div>
+
       <div class="field">
-        <label>Work Detail / Items</label>
-        <input type="text" id="workDetail" placeholder="Rotavator 2 hours / 5 bags cement">
+        <label>Work Detail / Duration / Trips</label>
+        <input type="text" id="workDetail" placeholder="e.g., 2 hours fieldwork or 3 trips sand">
       </div>
+
       <div class="field">
         <label>Amount (Rs.)</label>
         <input type="number" id="amount" placeholder="0">
       </div>
+
       <div class="btn-group">
         <button class="btn btn-danger" onclick="addBill('credit')">Add Udharo (-)</button>
         <button class="btn btn-success" onclick="addBill('payment')">Receive Payment (+)</button>
@@ -151,7 +178,7 @@
 
     <!-- CUSTOMER LEDGER LIST -->
     <div class="card">
-      <h3>📊 Customer Ledger</h3>
+      <h3>📊 Customer Ledger Summary</h3>
       <div id="ledgerList">Loading data...</div>
     </div>
 
@@ -161,17 +188,53 @@
 
 <script>
   // CONFIGURATION
-   const SUPABASE_URL = 'https://ddmuzrmlpanlqsrpkeyc.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_QE6adSsiKPskR7UEMeHTDw...'; // Your pasted key inside single quotes
-  const GEMINI_API_KEY = 'AIzaSy...your_actual_key_here';
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const SUPABASE_URL = 'https://ddmuzrmlpanlqsrpkeyc.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR_PUBLISHABLE_KEY_HERE'; // Replace with your publishable key starting with sb_publishable_
+  const GEMINI_API_KEY = 'YOUR_GEMINI_KEY_HERE';          // Replace with your Gemini API key
 
-  // Automatically load ledger when page opens
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   window.onload = function() {
     loadLedger();
   };
 
-  // 1. MANUAL BILL ENTRY
+  // 1. SPEECH SYNTHESIS (AI SPEAKS TO USER)
+  function speakNepali(text) {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'ne-NP'; // Nepali
+      window.speechSynthesis.speak(utterance);
+    }
+  }
+
+  // 2. SPEECH RECOGNITION (LISTENS TO USER VOICE)
+  function startVoiceInput() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice recognition is not supported in this browser. Please use Chrome or Safari.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'ne-NP'; // Set speech recognition to Nepali
+    recognition.interimResults = false;
+
+    speakNepali("हाजिरी, भन्नुहोस् के रेकर्ड गर्ने?");
+    
+    recognition.start();
+
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      document.getElementById('aiInput').value = transcript;
+      processAIBill();
+    };
+
+    recognition.onerror = function(event) {
+      alert("Voice input error: " + event.error);
+    };
+  }
+
+  // 3. MANUAL BILL ENTRY
   async function addBill(type, prefilledData = null) {
     const category = prefilledData ? prefilledData.category : document.getElementById('category').value;
     const customer_name = prefilledData ? prefilledData.customer_name : document.getElementById('custName').value.trim();
@@ -196,6 +259,8 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     if (error) {
       alert("Database error: " + error.message);
     } else {
+      speakNepali(`${customer_name}को खातामा ${amount} रुपैयाँ थपियो`);
+      
       // Clear inputs
       document.getElementById('custName').value = '';
       document.getElementById('custPhone').value = '';
@@ -205,7 +270,7 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
   }
 
-  // 2. NEPALI AI AUTO-BILLING PARSER
+  // 4. NEPALI AI AUTO-BILLING PARSER
   async function processAIBill() {
     const text = document.getElementById('aiInput').value.trim();
     if (!text) {
@@ -215,15 +280,17 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const prompt = `
     Extract billing information from this Nepali sentence: "${text}"
+    Identify operations such as Rotavator (रोटाभेटर), Harrow (ह्यारो), Leveler, Cultivator, or transport materials like Stone (ढुङ्गा), Sand (बालुवा), Gravel (गिट्टी).
+    
     Return ONLY a raw JSON object with these exact keys:
     {
       "customer_name": "string",
-      "category": "Hardware" OR "Tractor 1" OR "Tractor 2",
-      "work_detail": "string",
+      "category": "Hardware" OR "Tractor - Fieldwork" OR "Tractor - Transport",
+      "work_detail": "string detailing hours, trips, equipment used, or items bought",
       "amount": number,
       "transaction_type": "credit" OR "payment"
     }
-    If category is unspecified, default to "Hardware". If transaction_type is paying money, use "payment", otherwise "credit".
+    If transaction_type involves paying cash/clearing balance, use "payment", otherwise "credit".
     `;
 
     try {
@@ -239,7 +306,9 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       const rawText = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
       const bill = JSON.parse(rawText);
 
-      if (confirm(`Confirm AI Generated Entry:\nCustomer: ${bill.customer_name}\nCategory: ${bill.category}\nDetails: ${bill.work_detail}\nAmount: Rs. ${bill.amount}`)) {
+      const confirmMsg = `गराउने: ${bill.customer_name}\nसेवा: ${bill.category}\nविवरण: ${bill.work_detail}\nरकम: Rs. ${bill.amount}`;
+      
+      if (confirm(`Confirm Entry:\n\n${confirmMsg}`)) {
         await addBill(bill.transaction_type, bill);
         document.getElementById('aiInput').value = '';
       }
@@ -249,18 +318,18 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
   }
 
-  // 3. LOAD & RENDER LEDGER
+  // 5. LOAD & RENDER LEDGER
   async function loadLedger() {
     const { data: bills, error } = await supabase.from('bills').select('*');
     const container = document.getElementById('ledgerList');
     
     if (error) {
-      container.innerHTML = "<p style='color:red;'>Error loading ledger. Make sure your SUPABASE_ANON_KEY is pasted correctly.</p>";
+      container.innerHTML = "<p style='color:red;'>Error loading ledger. Verify SUPABASE_ANON_KEY.</p>";
       return;
     }
 
     if (!bills || bills.length === 0) {
-      container.innerHTML = "<p style='color:#64748b;'>No entries recorded yet. Add your first bill above!</p>";
+      container.innerHTML = "<p style='color:#64748b;'>No ledger entries found.</p>";
       return;
     }
 
@@ -292,7 +361,7 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         .map(cat => `<span class="badge ${cat.includes('Hardware') ? 'badge-hw' : 'badge-tr'}">${cat}: Rs. ${cust.breakdown[cat]}</span>`)
         .join(' ');
 
-      const waText = encodeURIComponent(`Namaste ${name}, your remaining total balance for Hardware/Tractor services is Rs. ${cust.balance}. Please clear your dues at your convenience.`);
+      const waText = encodeURIComponent(`Namaste ${name}, your remaining account balance is Rs. ${cust.balance}. Please clear your dues at your convenience.`);
       const waLink = cust.phone ? `https://wa.me/977${cust.phone}?text=${waText}` : '#';
 
       const div = document.createElement('div');
@@ -302,7 +371,7 @@ const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
           <strong>${name}</strong><br>
           <div style="margin: 4px 0;">${breakdownBadges}</div>
           <small style="color:${cust.balance > 0 ? '#d97706' : '#16a34a'}; font-weight:bold;">
-            ${cust.balance > 0 ? 'Total Due: Rs. ' + cust.balance : 'Cleared / Credit: Rs. ' + Math.abs(cust.balance)}
+            ${cust.balance > 0 ? 'Total Udharo: Rs. ' + cust.balance : 'Cleared / Advance: Rs. ' + Math.abs(cust.balance)}
           </small>
         </div>
         <div>
