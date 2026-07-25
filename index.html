@@ -189,24 +189,34 @@
       loadLedger();
     }
   };
-
-  // 1. SPEECH SYNTHESIS (AI SPEAKS IN NEPALI)
+// 1. SPEECH SYNTHESIS (WITH AUDIO UNLOCK FIX)
   function speakNepali(text) {
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Reset audio queue
+      window.speechSynthesis.cancel(); // Clear queued speech
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ne-NP';
       utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
+      
+      // Safari / Chrome fix: small delay ensures utterance isn't dropped
+      setTimeout(() => {
+        window.speechSynthesis.speak(utterance);
+      }, 100);
     }
   }
 
-  // 2. SPEECH RECOGNITION (LISTEN TO NEPALI VOICE)
+  // 2. SPEECH RECOGNITION (UNLOCKS AUDIO ON CLICK)
   function startVoiceInput() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Voice input is not supported in this browser. Try Chrome or Safari.");
       return;
+    }
+
+    // 🔓 BROWSER AUDIO UNLOCK: Play dummy silent speech on direct user click
+    if ('speechSynthesis' in window) {
+      const unlock = new SpeechSynthesisUtterance('');
+      unlock.volume = 0;
+      window.speechSynthesis.speak(unlock);
     }
 
     const recognition = new SpeechRecognition();
@@ -225,6 +235,8 @@
     recognition.onerror = function(event) {
       alert("Voice input error: " + event.error);
     };
+  }
+     
   }
 
   // 3. GET CURRENT CUSTOMER BALANCE FROM DATABASE
