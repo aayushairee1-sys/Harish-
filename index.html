@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Khata - Sugarcane, Fieldwork & Transport</title>
+  <title>Smart Khata - Voice & Ledger Upgrade</title>
   <style>
     :root {
       --primary: #2563eb;
@@ -39,6 +39,12 @@
       box-sizing: border-box;
       font-size: 15px;
     }
+    .search-box {
+      border: 2px solid var(--primary);
+      background-color: #f0f9ff;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
     .btn {
       width: 100%;
       padding: 12px;
@@ -52,9 +58,23 @@
     .btn-danger { background: var(--danger); }
     .btn-success { background: var(--success); }
     .btn-ai { background: var(--ai-color); }
-    .btn-mic { background: #ea580c; }
+    .btn-mic { background: #ea580c; font-size: 16px; }
     .btn-group { display: flex; gap: 8px; }
     
+    .chat-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+      border-radius: 8px;
+      min-height: 50px;
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    .user-msg { color: #2563eb; font-weight: bold; margin-bottom: 4px; }
+    .ai-msg { color: #7c3aed; font-weight: bold; margin-bottom: 4px; }
+
     .customer-item {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
@@ -85,23 +105,21 @@
 
 <div class="container">
   
-  <!-- AI VOICE & AUTOMATIC CALCULATION -->
+  <!-- UPGRADE 1: TWO-WAY CONVERSATIONAL VOICE ASSISTANT -->
   <div class="card" style="border: 2px solid var(--ai-color);">
-    <h3>🎙️ Smart AI Voice Khata</h3>
+    <h3>🎙️ Interactive AI Khata Assistant (नेपाली)</h3>
     <p style="font-size: 13px; color: #64748b; margin-top:-8px;">
-      Examples:<br>
-      • <i>"रामबहादुर रोटाभेटर १ घण्टा"</i> (Auto-calculates @ Rs. 55/min = Rs. 3,300)<br>
-      • <i>"हरिप्रसाद उखु ढुवानी २ ट्रिप"</i> (Sugarcane Transport to Factory)<br>
-      • <i>"रामबहादुरले रु ३००० बुझाए"</i> (Payment Settlement)
+      <b>Voice Examples:</b><br>
+      • <i>"रामबहादुर रोटाभेटर १ घण्टा"</i> (Entry & total calculation)<br>
+      • <i>"रामबहादुरको कति बाँकी छ?"</i> (Voice query customer balance)<br>
+      • <i>"रामबहादुरले रु ३००० बुझाए"</i> (Payment settlement)
     </p>
     
-    <div class="field">
-      <textarea id="aiInput" rows="2" placeholder="बोल्नुहोस् वा टाइप गर्नुहोस्..."></textarea>
-    </div>
+    <button class="btn btn-mic" onclick="startVoiceInteraction()">🎙️ Start AI Conversation (बोल्नुहोस्)</button>
     
-    <div class="btn-group">
-      <button class="btn btn-mic" onclick="startVoiceInput()">🎙️ Speak (बोल्नुहोस्)</button>
-      <button class="btn btn-ai" onclick="processAIBill()">✨ Calculate & Save</button>
+    <!-- AI CHAT DIALOGUE LOG -->
+    <div class="chat-box" id="chatBox">
+      <div class="ai-msg">🤖 AI: नमस्ते! के सेवा गरुँ?</div>
     </div>
   </div>
 
@@ -111,7 +129,7 @@
     
     <div class="field">
       <label>Service / Transport Category</label>
-      <select id="category" onchange="updateRateHint()">
+      <select id="category">
         <optgroup label="🚜 Fieldwork (Min/Hour)">
           <option value="Rotavator">🚜 Rotavator (Fixed Rs. 55 / minute)</option>
           <option value="Cultivator">🚜 Cultivator / Plough (हलो)</option>
@@ -134,7 +152,7 @@
     </div>
 
     <div class="field">
-      <label>Work Duration / Trips (e.g., "60 min", "2 hours", or "3 trips")</label>
+      <label>Work Duration / Trips (e.g. "60 min", "1 hour", or "2 trips")</label>
       <input type="text" id="workDetail" placeholder="e.g. 1 hour or 2 trips">
     </div>
 
@@ -149,9 +167,20 @@
     </div>
   </div>
 
-  <!-- CUSTOMER LEDGER -->
+  <!-- UPGRADE 3: INSTANT SEARCHABLE LEDGER -->
   <div class="card">
     <h3>📖 Customer Ledger History</h3>
+    
+    <div class="field">
+      <input 
+        type="text" 
+        id="searchLedger" 
+        class="search-box" 
+        placeholder="🔍 Search customer name (e.g., Ram Bahadur)..." 
+        onkeyup="loadLedger()"
+      >
+    </div>
+
     <div id="ledgerList">Loading ledger records...</div>
   </div>
 
@@ -159,7 +188,7 @@
 
 <script>
   const GEMINI_API_KEY = 'AQ.Ab8RN6LEvaGddzZykzCUXg-jDx3DmaOugXL51mLNRg0U7uB9RQ';
-  const ROTAVATOR_RATE_PER_MIN = 55; // 55 Rupees per minute
+  const ROTAVATOR_RATE_PER_MIN = 55;
 
   window.onload = function() {
     loadLedger();
@@ -179,31 +208,56 @@
     localStorage.setItem('smart_khata_master', JSON.stringify(bills));
   }
 
-  function speakNepali(text) {
+  // Nepali Speech Synthesis
+  function speakNepali(text, callback = null) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
+    
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'hi-IN';
     utterance.rate = 0.9;
+
+    if (callback) {
+      utterance.onend = callback;
+      utterance.onerror = callback;
+    }
+
     window.speechSynthesis.speak(utterance);
   }
 
-  function startVoiceInput() {
+  // Interactive Voice Handler
+  function startVoiceInteraction() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("Voice input is not supported in this browser.");
       return;
     }
 
-    speakNepali("हाजिरी, बोल्नुहोस्");
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'ne-NP';
-    recognition.start();
+    const chatBox = document.getElementById('chatBox');
+    chatBox.innerHTML += `<div class="ai-msg">🤖 AI: हाजिरी! भन्नुहोस् के रेकर्ड वा खोज्ने?</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
 
-    recognition.onresult = function(event) {
-      document.getElementById('aiInput').value = event.results[0][0].transcript;
-      processAIBill();
-    };
+    speakNepali("हाजिरी! भन्नुहोस् के रेकर्ड वा खोज्ने?", function() {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'ne-NP';
+      recognition.interimResults = false;
+
+      try {
+        recognition.start();
+      } catch(e) {}
+
+      recognition.onresult = function(event) {
+        const userText = event.results[0][0].transcript;
+        chatBox.innerHTML += `<div class="user-msg">👤 You: ${userText}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        
+        processAIBill(userText);
+      };
+
+      recognition.onerror = function() {
+        chatBox.innerHTML += `<div class="ai-msg" style="color:red;">🤖 Voice Error. Please try again.</div>`;
+      };
+    });
   }
 
   function getCurrentBalance(name) {
@@ -219,10 +273,9 @@
     const work_detail = prefilledData ? prefilledData.work_detail : document.getElementById('workDetail').value.trim();
     let amount = prefilledData ? prefilledData.amount : parseFloat(document.getElementById('amount').value);
 
-    // Auto calculate if Rotavator and amount is not set
     if (category === 'Rotavator' && (!amount || amount === 0)) {
-      let minutes = 60; // default 1 hour if not specified
-      if (workDetail.includes('min')) minutes = parseInt(workDetail);
+      let minutes = 60;
+      if (work_detail && work_detail.includes('min')) minutes = parseInt(work_detail);
       amount = minutes * ROTAVATOR_RATE_PER_MIN;
     }
 
@@ -244,12 +297,18 @@
     saveLocalBill(billObj);
 
     const newTotal = type === 'credit' ? prevBalance + amount : prevBalance - amount;
+    const chatBox = document.getElementById('chatBox');
     
+    let reply = "";
     if (newTotal <= 0) {
-      speakNepali(`${customer_name}को खाता चुक्ता भयो।`);
+      reply = `${customer_name}को खाता चुक्ता भयो। बाँकी रकम रु ० छ।`;
     } else {
-      speakNepali(`${customer_name}को कुल बाँकी रु ${newTotal} भयो।`);
+      reply = `${customer_name}को नयाँ कुल बाँकी रकम रु ${newTotal} भयो।`;
     }
+
+    chatBox.innerHTML += `<div class="ai-msg">🤖 AI: ${reply}</div>`;
+    chatBox.scrollTop = chatBox.scrollHeight;
+    speakNepali(reply);
 
     document.getElementById('custName').value = '';
     document.getElementById('workDetail').value = '';
@@ -258,25 +317,26 @@
     loadLedger();
   }
 
-  async function processAIBill() {
-    const text = document.getElementById('aiInput').value.trim();
-    if (!text) return;
-
+  // UPGRADE 2: AI INTENT ANALYSIS (QUERY VS ENTRY)
+  async function processAIBill(inputText) {
     const prompt = `
-    Analyze this Nepali Khata entry: "${text}"
+    Analyze this text from a businessman: "${inputText}"
 
-    Rules:
-    - Rotavator rate is fixed at 55 Rupees per minute (1 hour = 60 min = 3300 Rs).
-    - If user asks to add udharo for sugarcane transport, sand, stone, or machine fieldwork, calculate amount accordingly.
-    - Transaction types: "credit" (taking service on credit) or "payment" (customer paying dues).
+    Determine intent:
+    1. "query" -> If asking for a customer's balance (e.g. "रामबहादुरको कति बाँकी छ?").
+    2. "credit" -> If customer took goods/services/fieldwork/transport on credit.
+    3. "payment" -> If customer paid money/cleared dues.
 
-    Return ONLY raw JSON:
+    Rules for pricing:
+    - Rotavator rate is 55 Rupees per minute (1 hour = 3300 Rs).
+
+    Return raw JSON ONLY:
     {
+      "intent": "query" | "credit" | "payment",
       "customer_name": "string",
       "category": "Rotavator" | "Cultivator" | "Harrow" | "Leveler" | "Sugarcane Transport" | "Transport Sand" | "Transport Stone" | "General",
-      "work_detail": "string (e.g., 1 hour, 2 trips)",
-      "amount": number,
-      "transaction_type": "credit" OR "payment"
+      "work_detail": "string",
+      "amount": number
     }
     `;
 
@@ -289,17 +349,33 @@
 
       const data = await response.json();
       let rawText = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const bill = JSON.parse(rawText);
+      const parsed = JSON.parse(rawText);
 
-      addBill(bill.transaction_type, bill);
-      document.getElementById('aiInput').value = '';
+      const chatBox = document.getElementById('chatBox');
+
+      // BALANCE QUERY RESPONSE
+      if (parsed.intent === 'query') {
+        const currentBalance = getCurrentBalance(parsed.customer_name);
+        const reply = `${parsed.customer_name}को कुल बाँकी रकम रु ${currentBalance} छ।`;
+        
+        chatBox.innerHTML += `<div class="ai-msg">🤖 AI: ${reply}</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        speakNepali(reply);
+        return;
+      }
+
+      // ADD CREDIT OR PAYMENT
+      addBill(parsed.intent, parsed);
+
     } catch (err) {
       alert("AI Processing Error: " + err.message);
     }
   }
 
+  // FILTERABLE LEDGER RENDER
   function loadLedger() {
     const container = document.getElementById('ledgerList');
+    const searchQuery = (document.getElementById('searchLedger')?.value || '').toLowerCase().trim();
     const bills = getLocalBills();
 
     if (!bills || bills.length === 0) {
@@ -320,7 +396,14 @@
     });
 
     container.innerHTML = '';
+    let matchCount = 0;
+
     for (let name in customers) {
+      if (searchQuery && !name.toLowerCase().includes(searchQuery)) {
+        continue;
+      }
+
+      matchCount++;
       const cust = customers[name];
       const isPaid = cust.balance <= 0;
 
@@ -337,7 +420,7 @@
             ${isPaid ? 'CHUKTA / PAID' : 'DUE / बाकी'}
           </span>
           <div style="font-size:16px; font-weight:bold; margin-top:4px; color:${cust.balance > 0 ? '#d97706' : '#16a34a'};">
-            ${cust.balance > 0 ? 'Total Outstanding: Rs. ' + cust.balance : 'Settled / Advance: Rs. ' + Math.abs(cust.balance)}
+            ${cust.balance > 0 ? 'Total Outstanding Due: Rs. ' + cust.balance : 'Settled / Advance: Rs. ' + Math.abs(cust.balance)}
           </div>
           <div class="job-history">
             <strong>Work History:</strong><br>
@@ -346,6 +429,10 @@
         </div>
       `;
       container.appendChild(div);
+    }
+
+    if (matchCount === 0) {
+      container.innerHTML = `<p style='color:#64748b;'>No customer found matching "${searchQuery}".</p>`;
     }
   }
 </script>
