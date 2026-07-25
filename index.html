@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Khata & Nepali AI Assistant</title>
+  <title>Smart Khata & Nepali Voice AI</title>
   <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-  // ... (keep the rest of your functions below like speakNepali, addBill, processAIBill, etc.)
     :root {
       --primary: #2563eb;
       --danger: #dc2626;
@@ -108,9 +107,9 @@
 
     <!-- VOICE & AI ASSISTANT CARD -->
     <div class="card" style="border: 2px solid var(--ai-color);">
-      <h3>🎙️ Voice & AI Auto-Billing</h3>
+      <h3>🎙️ Voice & AI Auto-Billing (नेपाली)</h3>
       <p style="font-size: 13px; color: #64748b; margin-top:-8px;">
-        Speak or type in Nepali (e.g., <i>"रामबहादुरको रोटाभेटर २ घण्टा काम रु २५००"</i> or <i>"हरीले ३००० भुक्तानी गर्यो"</i>)
+        Speak or type in Nepali (e.g., <i>"रामबहादुरको रोटाभेटर २ घण्टा काम रु २५००"</i> or <i>"हरीको बालुवा ढुवानी ३ ट्रिप रु ४५००"</i>)
       </p>
       
       <div class="field">
@@ -119,7 +118,7 @@
       
       <div class="btn-group">
         <button class="btn btn-mic" onclick="startVoiceInput()">🎙️ Speak (बोल्नुहोस्)</button>
-        <button class="btn btn-ai" onclick="processAIBill()">✨ Auto-Add to Ledger</button>
+        <button class="btn btn-ai" onclick="processAIBill()">✨ Process & Calculate</button>
       </div>
     </div>
 
@@ -179,24 +178,31 @@
   const GEMINI_API_KEY = 'PASTE_YOUR_GEMINI_KEY_HERE';          // Replace with your Gemini API key
 
   const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  
-  // Store customer balances locally for quick AI calculations
-  let customerBalances = {};
+
+  // 🔒 PRIVATE PASSCODE LOCK
+  const SECRET_PIN = "1234"; // Set your personal 4-digit PIN here
 
   window.onload = function() {
-    loadLedger();
+    const userPin = prompt("🔑 Enter PIN to open Digital Khata:");
+    if (userPin !== SECRET_PIN) {
+      document.body.innerHTML = "<h2 style='color:red; text-align:center; margin-top:50px;'>Access Denied. Incorrect PIN.</h2>";
+    } else {
+      loadLedger();
+    }
   };
 
   // 1. SPEECH SYNTHESIS (AI SPEAKS IN NEPALI)
   function speakNepali(text) {
     if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Reset audio queue
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'ne-NP';
+      utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
   }
 
-  // 2. SPEECH RECOGNITION (VOICE INPUT)
+  // 2. SPEECH RECOGNITION (LISTEN TO NEPALI VOICE)
   function startVoiceInput() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -222,7 +228,7 @@
     };
   }
 
-  // 3. GET CURRENT CUSTOMER BALANCE
+  // 3. GET CURRENT CUSTOMER BALANCE FROM DATABASE
   async function getCurrentBalance(name) {
     const { data: bills } = await supabase.from('bills').select('amount, transaction_type').ilike('customer_name', name);
     if (!bills || bills.length === 0) return 0;
@@ -232,7 +238,7 @@
     }, 0);
   }
 
-  // 4. ADD TRANSACTION & AUTOMATICATION OF CUMULATIVE BALANCE
+  // 4. ADD TRANSACTION & CALCULATE CUMULATIVE BALANCE
   async function addBill(type, prefilledData = null) {
     const category = prefilledData ? prefilledData.category : document.getElementById('category').value;
     const customer_name = prefilledData ? prefilledData.customer_name : document.getElementById('custName').value.trim();
@@ -245,7 +251,7 @@
       return;
     }
 
-    // Insert new entry into database
+    // Insert transaction entry into database
     const { error } = await supabase.from('bills').insert([{
       customer_name,
       customer_phone,
@@ -258,11 +264,11 @@
     if (error) {
       alert("Database error: " + error.message);
     } else {
-      // Calculate new cumulative balance
+      // Calculate new total balance
       const prevBalance = await getCurrentBalance(customer_name) - (type === 'credit' ? amount : -amount);
       const newTotal = type === 'credit' ? prevBalance + amount : prevBalance - amount;
 
-      speakNepali(`${customer_name}को पुरानो खाता रु ${prevBalance} थियो। नयाँ कुल रकम रु ${newTotal} भयो।`);
+      speakNepali(`${customer_name}को पुरानो खाता रु ${prevBalance} थियो। नयाँ कुल बाँकी रकम रु ${newTotal} भयो।`);
 
       // Clear manual form
       document.getElementById('custName').value = '';
@@ -286,7 +292,7 @@
     Extract transaction info from this Nepali sentence: "${text}"
     Operations: Rotavator (रोटाभेटर), Harrow (ह्यारो), Leveler, Cultivator, or transport materials like Stone (ढुङ्गा), Sand (बालुवा), Gravel (गिट्टी).
 
-    Return ONLY raw JSON:
+    Return ONLY raw JSON with these exact keys:
     {
       "customer_name": "string",
       "category": "Hardware" OR "Tractor - Fieldwork" OR "Tractor - Transport",
@@ -294,7 +300,7 @@
       "amount": number,
       "transaction_type": "credit" OR "payment"
     }
-    If transaction involves giving money / clearing dues, use "payment", otherwise "credit".
+    If transaction involves receiving money / clearing dues, use "payment", otherwise "credit".
     `;
 
     try {
@@ -310,7 +316,7 @@
       const rawText = data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim();
       const bill = JSON.parse(rawText);
 
-      // Fetch existing total to calculate new total preview
+      // Fetch existing balance to calculate preview of new total
       const currentDue = await getCurrentBalance(bill.customer_name);
       const updatedTotal = bill.transaction_type === 'credit' ? currentDue + bill.amount : currentDue - bill.amount;
 
@@ -326,7 +332,7 @@
     }
   }
 
-  // 6. RENDER LEDGER WITH CUMULATIVE BALANCE & BREAKDOWN
+  // 6. RENDER LEDGER WITH AUTOMATIC CUMULATIVE BALANCE
   async function loadLedger() {
     const { data: bills, error } = await supabase.from('bills').select('*');
     const container = document.getElementById('ledgerList');
@@ -367,7 +373,7 @@
         .map(cat => `<span class="badge ${cat.includes('Hardware') ? 'badge-hw' : 'badge-tr'}">${cat}: Rs. ${cust.breakdown[cat]}</span>`)
         .join(' ');
 
-      const waText = encodeURIComponent(`Namaste ${name}, your current updated total balance for Hardware/Tractor services is Rs. ${cust.balance}. Please clear your dues at your convenience.`);
+      const waText = encodeURIComponent(`Namaste ${name}, your current updated balance for Hardware/Tractor services is Rs. ${cust.balance}. Please clear your dues at your convenience.`);
       const waLink = cust.phone ? `https://wa.me/977${cust.phone}?text=${waText}` : '#';
 
       const div = document.createElement('div');
