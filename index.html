@@ -1,176 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Khata & Nepali Voice AI</title>
-  <!-- Supabase JS Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    :root {
-      --primary: #2563eb;
-      --danger: #dc2626;
-      --success: #16a34a;
-      --ai-color: #7c3aed;
-      --bg: #f1f5f9;
-      --card-bg: #ffffff;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      margin: 0;
-      padding: 16px;
-      color: #1e293b;
-    }
-    .container {
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    .card {
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-      margin-bottom: 16px;
-    }
-    h2, h3 { margin-top: 0; }
-    .field { margin-bottom: 12px; }
-    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 14px; }
-    input, select, textarea {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      box-sizing: border-box;
-      font-size: 15px;
-    }
-    .btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 6px;
-      font-weight: bold;
-      color: white;
-      cursor: pointer;
-      font-size: 15px;
-    }
-    .btn-primary { background: var(--primary); }
-    .btn-danger { background: var(--danger); }
-    .btn-success { background: var(--success); }
-    .btn-ai { background: var(--ai-color); }
-    .btn-mic { background: #ea580c; }
-    .btn-group { display: flex; gap: 8px; }
-    
-    /* Customer Ledger Styling */
-    .customer-item {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .badge {
-      font-size: 11px;
-      padding: 3px 7px;
-      border-radius: 4px;
-      font-weight: bold;
-      margin-right: 4px;
-      display: inline-block;
-      margin-bottom: 4px;
-    }
-    .badge-hw { background: #dbeafe; color: #1e40af; }
-    .badge-tr { background: #fef3c7; color: #92400e; }
-    .wa-link {
-      background: #25d366;
-      color: white;
-      text-decoration: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-
-<div class="container">
-
-  <div id="dashboardSection">
-    
-    <!-- Header -->
-    <div class="card" style="display: flex; justify-content: space-between; align-items: center;">
-      <span style="font-size: 16px; font-weight: bold;">🚜 Digital Khata & Auto-Calculating Voice AI</span>
-    </div>
-
-    <!-- VOICE & AI ASSISTANT CARD -->
-    <div class="card" style="border: 2px solid var(--ai-color);">
-      <h3>🎙️ Voice & AI Auto-Billing (नेपाली)</h3>
-      <p style="font-size: 13px; color: #64748b; margin-top:-8px;">
-        Speak or type in Nepali (e.g., <i>"रामबहादुरको रोटाभेटर २ घण्टा काम रु २५००"</i> or <i>"हरीको बालुवा ढुवानी ३ ट्रिप रु ४५००"</i>)
-      </p>
-      
-      <div class="field">
-        <textarea id="aiInput" rows="2" placeholder="बोल्नुहोस् वा टाइप गर्नुहोस्..."></textarea>
-      </div>
-      
-      <div class="btn-group">
-        <button class="btn btn-mic" onclick="startVoiceInput()">🎙️ Speak (बोल्नुहोस्)</button>
-        <button class="btn btn-ai" onclick="processAIBill()">✨ Process & Calculate</button>
-      </div>
-    </div>
-
-    <!-- MANUAL ENTRY FORM -->
-    <div class="card">
-      <h3>📝 Manual Entry</h3>
-      
-      <div class="field">
-        <label>Service Category</label>
-        <select id="category">
-          <option value="Hardware">🛠️ Hardware Items</option>
-          <option value="Tractor - Fieldwork">🚜 Tractor Fieldwork (Rotavator / Harrow / Leveler)</option>
-          <option value="Tractor - Transport">🚚 Transport (Stone / Sand / Gravel)</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Customer Name</label>
-        <input type="text" id="custName" placeholder="e.g. Ram Bahadur">
-      </div>
-
-      <div class="field">
-        <label>Mobile Number (for WhatsApp)</label>
-        <input type="tel" id="custPhone" placeholder="9800000000">
-      </div>
-
-      <div class="field">
-        <label>Work Detail / Duration / Trips</label>
-        <input type="text" id="workDetail" placeholder="e.g., 2 hours rotavator or 3 trips sand">
-      </div>
-
-      <div class="field">
-        <label>Amount (Rs.)</label>
-        <input type="number" id="amount" placeholder="0">
-      </div>
-
-      <div class="btn-group">
-        <button class="btn btn-danger" onclick="addBill('credit')">Add Udharo (-)</button>
-        <button class="btn btn-success" onclick="addBill('payment')">Receive Payment (+)</button>
-      </div>
-    </div>
-
-    <!-- CUSTOMER LEDGER LIST -->
-    <div class="card">
-      <h3>📊 Customer Ledger & Calculated Total</h3>
-      <div id="ledgerList">Loading ledger data...</div>
-    </div>
-
-  </div>
-
-</div>
-
 <script>
   // CONFIGURATION
   const SUPABASE_URL = 'https://ddmuzrmlpanlqsrpkeyc.supabase.co';
@@ -250,6 +77,9 @@
       return;
     }
 
+    // Get previous balance BEFORE inserting new bill
+    const prevBalance = await getCurrentBalance(customer_name);
+
     // Insert transaction entry into database
     const { error } = await supabase.from('bills').insert([{
       customer_name,
@@ -263,8 +93,7 @@
     if (error) {
       alert("Database error: " + error.message);
     } else {
-      // Calculate new total balance
-      const prevBalance = await getCurrentBalance(customer_name) - (type === 'credit' ? amount : -amount);
+      // Calculate updated total balance
       const newTotal = type === 'credit' ? prevBalance + amount : prevBalance - amount;
 
       speakNepali(`${customer_name}को पुरानो खाता रु ${prevBalance} थियो। नयाँ कुल बाँकी रकम रु ${newTotal} भयो।`);
@@ -303,7 +132,7 @@
     `;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -393,6 +222,3 @@
     }
   }
 </script>
-
-</body>
-</html>
