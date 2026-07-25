@@ -190,21 +190,35 @@
     }
   };
 
-  // 1. SPEECH SYNTHESIS (WITH SAFARI/CHROME AUDIO UNLOCK)
+ // 1. SPEECH SYNTHESIS (WITH HINDI/DEVANAGARI ENGINE FOR MAC)
   function speakNepali(text) {
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Clear audio queue
+      window.speechSynthesis.cancel(); // Clear queued speech
+
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ne-NP';
       utterance.rate = 0.9;
-      
-      // Delay ensures Safari/Chrome audio context isn't lost
+
+      // Fetch loaded voices on Mac
+      const voices = window.speechSynthesis.getVoices();
+
+      // Priority: Nepali voice -> Lekha/Hindi voice -> Hindi language code
+      const targetVoice = voices.find(v => 
+        v.lang.includes('ne') || 
+        v.name.includes('Lekha') || 
+        v.lang.includes('hi')
+      );
+
+      if (targetVoice) {
+        utterance.voice = targetVoice;
+      } else {
+        utterance.lang = 'hi-IN'; // Uses Devanagari engine fallback
+      }
+
       setTimeout(() => {
         window.speechSynthesis.speak(utterance);
       }, 100);
     }
   }
-
   // 2. SPEECH RECOGNITION (UNlocks audio playback on user gesture)
   function startVoiceInput() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
